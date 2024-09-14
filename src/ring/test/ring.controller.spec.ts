@@ -4,6 +4,7 @@ import { RingService } from '../ring.service';
 import { CreateRingDto } from '../models/dto/create-ring.dto';
 import { UpdateRingDto } from '../models/dto/update-ring.dto';
 import { RingType } from '../enum/ring.enum';
+import { BadRequestException } from '@nestjs/common';
 
 describe('RingController', () => {
   let controller: RingController;
@@ -54,6 +55,25 @@ describe('RingController', () => {
       expect(await controller.create(createRingDto)).toEqual(result);
       expect(service.create).toHaveBeenCalledWith(createRingDto);
     });
+
+    it('should throw BadRequestException if trying to create more than the limit of SAURON rings', async () => {
+      const createRingDto: CreateRingDto = {
+        name: 'Another Ring',
+        power: 'Invisibility',
+        ringBearer: 'New Bearer',
+        forger: 'Sauron',
+        type: RingType.SAURON,
+        image: 'https://example.com/ring.jpg',
+      };
+
+      jest
+        .spyOn(service, 'create')
+        .mockRejectedValue(new BadRequestException());
+
+      await expect(controller.create(createRingDto)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
   });
 
   describe('findAll', () => {
@@ -84,6 +104,18 @@ describe('RingController', () => {
 
       expect(await controller.update('1', updateRingDto)).toEqual(result);
       expect(service.update).toHaveBeenCalledWith('1', updateRingDto);
+    });
+
+    it('should throw BadRequestException if trying to update ring type to ELF when limit is reached', async () => {
+      const updateRingDto: UpdateRingDto = { type: RingType.ELF };
+
+      jest
+        .spyOn(service, 'update')
+        .mockRejectedValue(new BadRequestException());
+
+      await expect(controller.update('1', updateRingDto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
